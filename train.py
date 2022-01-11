@@ -32,7 +32,7 @@ def set_up_training(lr, mode=TRAIN_FIRST_TIME, model_path=None):
     # Set device.
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if mode == TRAIN_FIRST_TIME:
-        model = modules.TestNN().to(device)
+        model = modules.use_default_transformer().to(device)
     elif mode == CONTINUE_TRAINING:
         model = _restore_model(model_path)
     loss_fn = nn.MSELoss()
@@ -48,7 +48,7 @@ def train(data_loader, modle, loss_fn, optimizer, device, check_step, epoch):
         for batch, (input_tensor, Wt0) in enumerate(data_loader):
             input_tensor, Wt0 = input_tensor.to(device), Wt0.to(device)
             # Compute prediction error.
-            pred = modle(input_tensor)
+            pred = modle(input_tensor, Wt0)
             loss = loss_fn(pred, Wt0)
             # Backpropagation.
             optimizer.zero_grad()
@@ -61,9 +61,33 @@ def train(data_loader, modle, loss_fn, optimizer, device, check_step, epoch):
     return None
 
 
+def _test_create_dataset(file_dir):
+    """Pass."""
+    data = data_utils.read_files(file_dir)
+    dataset = modules.Rk4Dataset(data)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
+    input_tensor, Wt0 = next(iter(dataloader))
+    print(input_tensor, Wt0)
+    return None
+
+
 def _test_create_model():
     print(set_up_training(lr=1e-3))
     return None
+
+
+def _test_train():
+    file_dir = "/home/yqs/dave/pod/FlowTransformer/test"
+    data_loader = load_dataset(file_dir, batch_size=2)
+    model, loss_fn, optimizer, device = set_up_training(lr=1e-3)
+    train(data_loader,
+          model,
+          loss_fn,
+          optimizer,
+          device,
+          check_step=10,
+          epoch=5)
+    print("Training done!")
 
 
 if __name__ == "__main__":

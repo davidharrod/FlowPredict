@@ -27,6 +27,7 @@ class Rk4Dataset(Dataset):
 
 
 class TestNN(nn.Module):
+    """Pass test case."""
     def __init__(self):
         super(TestNN, self).__init__()
         self.flatten = nn.Flatten()
@@ -37,6 +38,12 @@ class TestNN(nn.Module):
     def forward(self, x):
         x = self.flatten(x)
         return self.linear_relu_stack(x)
+
+
+def use_default_transformer():
+    return nn.Transformer(norm_first=True)
+
+    # return nn.Transformer(kwargs)
 
 
 def _test_create_dataset(file_dir):
@@ -51,4 +58,4 @@ def _test_create_dataset(file_dir):
 
 if __name__ == "__main__":
     file_dir = "/home/yqs/dave/pod/FlowTransformer/test"
-    _test_create_dataset(file_dir)
+    use_default_transformer()
