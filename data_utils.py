@@ -18,8 +18,8 @@ def _str_2_float(str):
 def _read_file(file):
     file_as_dict = {}
     Wt0 = []
-    dwt0 = []
-    flag = 1
+    # dwt0 = []
+    # flag = 1
     with open(file) as file:
         for i, line in enumerate(file.readlines()):
             line = line.split(" ")[0]
@@ -29,14 +29,14 @@ def _read_file(file):
                 file_as_dict["nT"] = _str_2_float(line)
             if "=" in line:
                 if i > 3:
-                    flag = 0
+                    break
                 continue
-            if flag:
-                Wt0.append(line)
-            else:
-                dwt0.append(line)
+            # if flag:
+            Wt0.append(line)
+            # else:
+            #     dwt0.append(line)
     file_as_dict["Wt0"] = list(map(_str_2_float, Wt0))
-    file_as_dict["dwt0"] = list(map(_str_2_float, dwt0))
+    # file_as_dict["dwt0"] = list(map(_str_2_float, dwt0))
     return file_as_dict
 
 
@@ -51,6 +51,6 @@ def read_files(file_dir):
 
 
 if __name__ == "__main__":
-    file_dir = "/home/yqs/dave/pod/test"
+    file_dir = "/home/yqs/dave/pod/FlowTransformer/test"
     a = read_files(file_dir)
     print("done!")

@@ -22,8 +22,8 @@ class Rk4Dataset(Dataset):
         df = self.data[idx].T
         input_tensor = torch.tensor([df["lamd"][0], df["nT"][0]])
         Wt0 = torch.tensor(df["Wt0"][0])
-        dwt0 = torch.tensor(df["dwt0"][0])
-        return input_tensor, Wt0, dwt0
+        # dwt0 = torch.tensor(df["dwt0"][0])
+        return input_tensor, Wt0
 
 
 class TestNN(nn.Module):
@@ -32,7 +32,7 @@ class TestNN(nn.Module):
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(nn.Linear(2, 512), nn.ReLU(),
                                                nn.Linear(512, 1024), nn.ReLU(),
-                                               nn.Linear(1024, 50001))
+                                               nn.Linear(1024, 50003))
 
     def forward(self, x):
         x = self.flatten(x)
@@ -44,11 +44,11 @@ def _test_create_dataset(file_dir):
     data = data_utils.read_files(file_dir)
     dataset = Rk4Dataset(data)
     dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
-    input_tensor, Wt0, dwt0 = next(iter(dataloader))
-    print(input_tensor, Wt0, dwt0)
+    input_tensor, Wt0 = next(iter(dataloader))
+    print(input_tensor, Wt0)
     return None
 
 
 if __name__ == "__main__":
-    file_dir = "/home/yqs/dave/pod/test"
+    file_dir = "/home/yqs/dave/pod/FlowTransformer/test"
     _test_create_dataset(file_dir)
