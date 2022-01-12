@@ -3,7 +3,6 @@ import torch
 import os
 from torch import optim
 from torch.autograd.grad_mode import F
-from torch.nn.modules import loss
 from torch.nn.modules.container import ModuleList
 from torch.utils.data.dataloader_experimental import DataLoader2
 import modules
@@ -48,7 +47,7 @@ def _set_up_training(lr=1e-3, mode=TRAIN_FIRST_TIME, model_path=None):
         if mode == EVALUATE:
             model.eval()
             return model, loss_fn, device
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
     print("=====Training set up=====")
     return model, loss_fn, optimizer, device
 
@@ -69,14 +68,14 @@ def train(data_loader, model, loss_fn, optimizer, device, check_step, epoch,
             input_tensor, Wt0 = input_tensor.to(device), Wt0.to(device)
             # Compute prediction error.
             pred = model(input_tensor)
-            loss = loss_fn(pred, Wt0)
+            model_loss = loss_fn(pred, Wt0)
             # Backpropagation.
             optimizer.zero_grad()
-            loss.backward()
+            model_loss.backward()
             optimizer.step()
             if batch % check_step == 0:
                 writer.add_scalar(
-                    "loss", loss,
+                    "loss", model_loss,
                     batch + epoch_count * size / data_loader.batch_size)
         if (epoch_count + 1) % CHECK_POINT == 0:
             torch.save(model.state_dict(),
@@ -98,9 +97,9 @@ def evaluate(model_path, data_loader, mode=None):
             input_tensor = input_tensor.to(device)
             Wt0 = Wt0.to(device)
             pred = model(input_tensor)
-            loss = loss_fn(pred, Wt0)
-            print(f"Loss for test batch {batch} is: {loss}")
-            sum_loss += loss
+            model_loss = loss_fn(pred, Wt0)
+            print(f"Loss for test batch {batch} is: {model_loss}")
+            sum_loss += model_loss
             if mode == GET_PREDICTION:
                 pred_list.append(pred)
     return sum_loss / size, pred_list
@@ -140,17 +139,23 @@ if __name__ == "__main__":
     file_dir = "/home/yqs/dave/pod/FlowPredict/dataset/wt0_data/"
     log_dir = "./log"
     model_path = "/home/yqs/dave/pod/FlowPredict/log/2022_01_12_16_27/model_ckpt/model_ckpt.pth"
-    data_loader = load_dataset(test_dir, batch_size=1)
-    avg_loss, pred_list = evaluate(model_path,
-                                   data_loader,
-                                   mode=GET_PREDICTION)
-    print(f"avg_loss: {avg_loss}\n")
-    print(pred_list)
-    # train(data_loader,
-    #       model,
-    #       loss_fn,
-    #       optimizer,
-    #       device,
-    #       check_step=1,
-    #       epoch=10,
-    #       log_dir=log_dir)
+    # Evaluate pipeline.
+    # data_loader = load_dataset(test_dir, batch_size=1)
+    # avg_loss, pred_list = evaluate(model_path,
+    #                                data_loader,
+    #                                mode=GET_PREDICTION)
+    # print(f"avg_loss: {avg_loss}\n")
+    # print(pred_list)
+
+    # Train pipeline.
+    data_loader = load_dataset(file_dir, batch_size=50)
+    model, loss_fn, optimizer, device = _set_up_training(lr=1e-2,
+                                                         mode=TRAIN_FIRST_TIME)
+    train(data_loader,
+          model,
+          loss_fn,
+          optimizer,
+          device,
+          check_step=10,
+          epoch=1000,
+          log_dir=log_dir)
