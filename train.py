@@ -1,18 +1,20 @@
 import torch
+import os
 from torch import optim
+from torch.autograd.grad_mode import F
 from torch.nn.modules import loss
 from torch.nn.modules.container import ModuleList
 from torch.utils.data.dataloader_experimental import DataLoader2
 import modules
-import pandas as pd
-import numpy as np
 import data_utils
 from torch import nn
 from torch.utils.data import DataLoader, dataloader
+from torch.utils.tensorboard import SummaryWriter, writer
 
 TRAIN_FIRST_TIME = "TRAIN_FIRST_TIME"
 CONTINUE_TRAINING = "CONTINUE_TRAINING"
 TEST = "TEST"
+CHECK_POINT = 100
 
 
 def _restore_model(model_path):
@@ -24,7 +26,11 @@ def _restore_model(model_path):
 def load_dataset(file_dir, batch_size, shuffle=True):
     data = data_utils.read_files(file_dir)
     dataset = modules.Rk4Dataset(data)
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+    data_loader = DataLoader(dataset,
+                             batch_size=batch_size,
+                             shuffle=shuffle,
+                             drop_last=True)
+    print("=====Dataset loaded=====")
     return data_loader
 
 
@@ -32,31 +38,44 @@ def set_up_training(lr, mode=TRAIN_FIRST_TIME, model_path=None):
     # Set device.
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if mode == TRAIN_FIRST_TIME:
-        model = modules.use_default_transformer().to(device)
+        model = modules.TestNN().to(device)
     elif mode == CONTINUE_TRAINING:
         model = _restore_model(model_path)
     loss_fn = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    print("=====Training set up=====")
     return model, loss_fn, optimizer, device
 
 
-def train(data_loader, modle, loss_fn, optimizer, device, check_step, epoch):
+def train(data_loader, model, loss_fn, optimizer, device, check_step, epoch,
+          log_dir):
     size = len(data_loader.dataset)
-    modle.train()
+    model.train()
+    tensorboard_dir = data_utils.make_dir_for_current_time(
+        log_dir, "tensorboard")
+    model_ckpt_dir = data_utils.make_dir_for_current_time(
+        log_dir, "model_ckpt")
+    writer = SummaryWriter(log_dir=tensorboard_dir)
+    print("=====Start training=====")
     for epoch_count in range(epoch):
-        print(f"Epoch {epoch_count+1}\n-------------------------------")
+        print(f"=====Epoch {epoch_count+1} start training=====")
         for batch, (input_tensor, Wt0) in enumerate(data_loader):
             input_tensor, Wt0 = input_tensor.to(device), Wt0.to(device)
             # Compute prediction error.
-            pred = modle(input_tensor, Wt0)
+            pred = model(input_tensor)
             loss = loss_fn(pred, Wt0)
             # Backpropagation.
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             if batch % check_step == 0:
-                loss, current = loss.item(), batch * len(input_tensor)
-                print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+                writer.add_scalar(
+                    "loss", loss,
+                    batch + epoch_count * size / data_loader.batch_size)
+        if (epoch_count + 1) % CHECK_POINT == 0:
+            torch.save(model, os.path.join(model_ckpt_dir, "model_ckpt.pt"))
+        print(f"+++++Epoch {epoch_count+1} done+++++")
+    writer.close()
     print("Training done!")
     return None
 
@@ -77,8 +96,8 @@ def _test_create_model():
 
 
 def _test_train():
-    file_dir = "/home/yqs/dave/pod/FlowTransformer/test"
-    data_loader = load_dataset(file_dir, batch_size=2)
+    file_dir = "/home/yqs/dave/pod/FlowTransformer/dataset/wt0_data"
+    data_loader = load_dataset(file_dir, batch_size=10)
     model, loss_fn, optimizer, device = set_up_training(lr=1e-3)
     train(data_loader,
           model,
@@ -91,8 +110,10 @@ def _test_train():
 
 
 if __name__ == "__main__":
-    file_dir = "/home/yqs/dave/pod/FlowTransformer/test"
-    data_loader = load_dataset(file_dir, batch_size=2)
+    test_dir = "/home/yqs/dave/pod/FlowTransformer/test"
+    file_dir = "/home/yqs/dave/pod/FlowTransformer/dataset/wt0_data"
+    log_dir = "./log"
+    data_loader = load_dataset(file_dir, batch_size=50)
     model, loss_fn, optimizer, device = set_up_training(lr=1e-3)
     train(data_loader,
           model,
@@ -100,5 +121,5 @@ if __name__ == "__main__":
           optimizer,
           device,
           check_step=10,
-          epoch=5)
-    print("Training done!")
+          epoch=300,
+          log_dir=log_dir)

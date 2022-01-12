@@ -1,6 +1,8 @@
 import os
+from numpy.core.numeric import identity
 import pandas as pd
 import torch
+from torch.nn.functional import layer_norm
 from torch.nn.modules.activation import ReLU
 from torch.utils import data
 import data_utils
@@ -32,12 +34,37 @@ class TestNN(nn.Module):
         super(TestNN, self).__init__()
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(nn.Linear(2, 512), nn.ReLU(),
-                                               nn.Linear(512, 1024), nn.ReLU(),
-                                               nn.Linear(1024, 50003))
+                                               nn.Linear(512, 2048), nn.ReLU(),
+                                               nn.Linear(2048, 50003))
 
     def forward(self, x):
         x = self.flatten(x)
         return self.linear_relu_stack(x)
+
+
+class FlowResNet(nn.Module):
+    def __init__(self, norm_layer=None, dropout=0) -> None:
+        super(FlowResNet, self).__init__()
+        if norm_layer is None:
+            self.bn_layers = nn.ModuleList(
+                [nn.BatchNorm1d(512),
+                 nn.BatchNorm1d(32768)])
+        else:
+            self.bn_layers = norm_layer
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+        self.fc_layers = nn.ModuleList(
+            [nn.Linear(2, 512), nn.Linear(512, 32768)])
+        self.out_fc = nn.Linear(32768, 50003)
+
+    def forward(self, x):
+        for i in range(len(self.bn_layers)):
+            out = self.fc_layers[i](x)
+            out = self.dropout(out)
+            out = self.bn_layers[i](out)
+            x = self.relu(out)
+        out = self.out_fc(out)
+        return out
 
 
 def use_default_transformer():

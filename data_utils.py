@@ -1,5 +1,7 @@
 import os
+from posixpath import dirname
 from sys import dont_write_bytecode
+import time
 import pandas as pd
 
 
@@ -50,7 +52,25 @@ def read_files(file_dir):
     return list(map(_dict_2_df, dataset))
 
 
+def _try_2_create_directory(dir):
+    try:
+        os.makedirs(dir)
+    except FileExistsError:
+        return dir
+    else:
+        return dir
+
+
+def make_dir_for_current_time(target_dir, dir_name=None):
+    current_time = time.strftime("%Y_%m_%d_%H_%M", time.localtime())
+    dir = os.path.join(target_dir, f"{current_time}", dir_name)
+    return _try_2_create_directory(dir)
+
+
 if __name__ == "__main__":
-    file_dir = "/home/yqs/dave/pod/FlowTransformer/test"
-    a = read_files(file_dir)
+    # file_dir = "/home/yqs/dave/pod/FlowTransformer/test"
+    # a = read_files(file_dir)
+    target_dir = "./log"
+    dir_name = "tensorboard"
+    make_dir_for_current_time(target_dir, dir_name)
     print("done!")
