@@ -1,3 +1,4 @@
+from pickle import NONE
 import torch
 import os
 from torch import optim
@@ -13,8 +14,10 @@ from torch.utils.tensorboard import SummaryWriter, writer
 
 TRAIN_FIRST_TIME = "TRAIN_FIRST_TIME"
 CONTINUE_TRAINING = "CONTINUE_TRAINING"
+EVALUATE = "EVALUATE"
 TEST = "TEST"
-CHECK_POINT = 100
+GET_PREDICTION = "GET_PREDICTION"
+CHECK_POINT = 5
 
 
 def _restore_model(model_path):
@@ -34,14 +37,17 @@ def load_dataset(file_dir, batch_size, shuffle=True):
     return data_loader
 
 
-def set_up_training(lr, mode=TRAIN_FIRST_TIME, model_path=None):
+def _set_up_training(lr=1e-3, mode=TRAIN_FIRST_TIME, model_path=None):
     # Set device.
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    loss_fn = nn.MSELoss()
     if mode == TRAIN_FIRST_TIME:
         model = modules.TestNN().to(device)
-    elif mode == CONTINUE_TRAINING:
-        model = _restore_model(model_path)
-    loss_fn = nn.MSELoss()
+    elif mode == CONTINUE_TRAINING or mode == EVALUATE:
+        model = _restore_model(model_path).to(device)
+        if mode == EVALUATE:
+            model.eval()
+            return model, loss_fn, device
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     print("=====Training set up=====")
     return model, loss_fn, optimizer, device
@@ -73,11 +79,31 @@ def train(data_loader, model, loss_fn, optimizer, device, check_step, epoch,
                     "loss", loss,
                     batch + epoch_count * size / data_loader.batch_size)
         if (epoch_count + 1) % CHECK_POINT == 0:
-            torch.save(model, os.path.join(model_ckpt_dir, "model_ckpt.pt"))
+            torch.save(model.state_dict(),
+                       os.path.join(model_ckpt_dir, "model_ckpt.pth"))
         print(f"+++++Epoch {epoch_count+1} done+++++")
     writer.close()
     print("Training done!")
     return None
+
+
+def evaluate(model_path, data_loader, mode=None):
+    size = len(data_loader.dataset)
+    model, loss_fn, device = _set_up_training(model_path=model_path,
+                                              mode=EVALUATE)
+    pred_list = []
+    with torch.no_grad():
+        sum_loss = 0
+        for batch, (input_tensor, Wt0) in enumerate(data_loader):
+            input_tensor = input_tensor.to(device)
+            Wt0 = Wt0.to(device)
+            pred = model(input_tensor)
+            loss = loss_fn(pred, Wt0)
+            print(f"Loss for test batch {batch} is: {loss}")
+            sum_loss += loss
+            if mode == GET_PREDICTION:
+                pred_list.append(pred)
+    return sum_loss / size, pred_list
 
 
 def _test_create_dataset(file_dir):
@@ -91,14 +117,14 @@ def _test_create_dataset(file_dir):
 
 
 def _test_create_model():
-    print(set_up_training(lr=1e-3))
+    print(_set_up_training(lr=1e-3))
     return None
 
 
 def _test_train():
     file_dir = "/home/yqs/dave/pod/FlowTransformer/dataset/wt0_data"
     data_loader = load_dataset(file_dir, batch_size=10)
-    model, loss_fn, optimizer, device = set_up_training(lr=1e-3)
+    model, loss_fn, optimizer, device = _set_up_training(lr=1e-3)
     train(data_loader,
           model,
           loss_fn,
@@ -110,16 +136,21 @@ def _test_train():
 
 
 if __name__ == "__main__":
-    test_dir = "/home/yqs/dave/pod/FlowTransformer/test"
-    file_dir = "/home/yqs/dave/pod/FlowTransformer/dataset/wt0_data"
+    test_dir = "/home/yqs/dave/pod/FlowPredict/test/"
+    file_dir = "/home/yqs/dave/pod/FlowPredict/dataset/wt0_data/"
     log_dir = "./log"
-    data_loader = load_dataset(file_dir, batch_size=50)
-    model, loss_fn, optimizer, device = set_up_training(lr=1e-3)
-    train(data_loader,
-          model,
-          loss_fn,
-          optimizer,
-          device,
-          check_step=10,
-          epoch=300,
-          log_dir=log_dir)
+    model_path = "/home/yqs/dave/pod/FlowPredict/log/2022_01_12_16_27/model_ckpt/model_ckpt.pth"
+    data_loader = load_dataset(test_dir, batch_size=1)
+    avg_loss, pred_list = evaluate(model_path,
+                                   data_loader,
+                                   mode=GET_PREDICTION)
+    print(f"avg_loss: {avg_loss}\n")
+    print(pred_list)
+    # train(data_loader,
+    #       model,
+    #       loss_fn,
+    #       optimizer,
+    #       device,
+    #       check_step=1,
+    #       epoch=10,
+    #       log_dir=log_dir)
