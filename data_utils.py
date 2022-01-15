@@ -2,7 +2,9 @@ import os
 from posixpath import dirname
 from sys import dont_write_bytecode
 import time
+import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def _dict_2_df(dict):
@@ -29,14 +31,15 @@ def _read_file(file):
                 file_as_dict["lamd"] = _str_2_float(line)
             elif i == 1:
                 file_as_dict["nT"] = _str_2_float(line)
-            if "=" in line:
-                if i > 3:
-                    break
-                continue
-            # if flag:
-            Wt0.append(line)
-            # else:
-            #     dwt0.append(line)
+            else:
+                if "=" in line:
+                    if i > 3:
+                        break
+                    continue
+                # if flag:
+                Wt0.append(line)
+                # else:
+                #     dwt0.append(line)
     file_as_dict["Wt0"] = list(map(_str_2_float, Wt0))
     # file_as_dict["dwt0"] = list(map(_str_2_float, dwt0))
     return file_as_dict
@@ -67,10 +70,15 @@ def make_dir_for_current_time(target_dir, dir_name=None):
     return _try_2_create_directory(dir)
 
 
-if __name__ == "__main__":
-    # file_dir = "/home/yqs/dave/pod/FlowTransformer/test"
-    # a = read_files(file_dir)
-    target_dir = "./log"
-    dir_name = "tensorboard"
-    make_dir_for_current_time(target_dir, dir_name)
-    print("done!")
+def visualize(input_tensor):
+    x = np.asarray([i/500 for i in range(50001)]).reshape(50001, 1)
+    data = input_tensor.numpy().reshape(50001, 1)
+    plt.plot(x, data)
+    # Set axis.
+    plt.title("Prediction")
+    plt.xlabel("t")
+    plt.ylabel("W(t)")
+    plt.axis([0, 100, -1.5e-1, 2e-1])
+    plt.show()
+    input()
+    return None

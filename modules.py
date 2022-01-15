@@ -15,6 +15,7 @@ class Rk4Dataset(Dataset):
     def __init__(self, data) -> None:
         super(Dataset, self).__init__()
         self.data = data
+        # Subtract lamd and nT.
         self.length = len(self.data)
 
     def __len__(self):
@@ -30,12 +31,13 @@ class Rk4Dataset(Dataset):
 
 class TestNN(nn.Module):
     """Pass test case."""
+
     def __init__(self):
         super(TestNN, self).__init__()
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(nn.Linear(2, 512), nn.ReLU(),
                                                nn.Linear(512, 4096), nn.ReLU(),
-                                               nn.Linear(4096, 50003))
+                                               nn.Linear(4096, 50001))
 
     def forward(self, x):
         x = self.flatten(x)
@@ -55,7 +57,7 @@ class FlowResNet(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.fc_layers = nn.ModuleList(
             [nn.Linear(2, 512), nn.Linear(512, 32768)])
-        self.out_fc = nn.Linear(32768, 50003)
+        self.out_fc = nn.Linear(32768, 50001)
 
     def forward(self, x):
         for i in range(len(self.bn_layers)):
@@ -81,8 +83,3 @@ def _test_create_dataset(file_dir):
     input_tensor, Wt0 = next(iter(dataloader))
     print(input_tensor, Wt0)
     return None
-
-
-if __name__ == "__main__":
-    file_dir = "/home/yqs/dave/pod/FlowTransformer/test"
-    use_default_transformer()

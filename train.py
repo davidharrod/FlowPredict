@@ -14,14 +14,18 @@ from torch.utils.tensorboard import SummaryWriter, writer
 TRAIN_FIRST_TIME = "TRAIN_FIRST_TIME"
 CONTINUE_TRAINING = "CONTINUE_TRAINING"
 EVALUATE = "EVALUATE"
+VISUALIZE = "VISUALIZE"
 TEST = "TEST"
 GET_PREDICTION = "GET_PREDICTION"
-CHECK_POINT = 5
+CHECK_POINT = 1
 
 
 def _restore_model(model_path):
     model = modules.TestNN()  # todo: Update to new model.
-    model.load_state_dict(torch.load(model_path))
+    try:
+        model.load_state_dict(torch.load(model_path))
+    except RuntimeError:
+        model.load_state_dict(torch.load(model_path, map_location="cpu"))
     return model
 
 
@@ -102,7 +106,9 @@ def evaluate(model_path, data_loader, mode=None):
             sum_loss += model_loss
             if mode == GET_PREDICTION:
                 pred_list.append(pred)
-    return sum_loss / size, pred_list
+            if mode == VISUALIZE:
+                data_utils.visualize(pred)
+    return sum_loss / size, pred_list if pred_list else None
 
 
 def _test_create_dataset(file_dir):
@@ -135,27 +141,27 @@ def _test_train():
 
 
 if __name__ == "__main__":
-    test_dir = "/home/yqs/dave/pod/FlowPredict/test/"
-    file_dir = "/home/yqs/dave/pod/FlowPredict/dataset/wt0_data/"
+    test_dir = "./test/test1"
+    file_dir = "./test"
     log_dir = "./log"
-    model_path = "/home/yqs/dave/pod/FlowPredict/log/2022_01_12_16_27/model_ckpt/model_ckpt.pth"
-    # Evaluate pipeline.
-    # data_loader = load_dataset(test_dir, batch_size=1)
-    # avg_loss, pred_list = evaluate(model_path,
-    #                                data_loader,
-    #                                mode=GET_PREDICTION)
-    # print(f"avg_loss: {avg_loss}\n")
-    # print(pred_list)
+    model_path = "C:/Users/Harold/Desktop/FlowPredict/log/2022_01_15_15_14/model_ckpt/model_ckpt.pth"
+    # Evaluate(Visualize) pipeline.
+    data_loader = load_dataset(test_dir, batch_size=1)
+    avg_loss, pred_list = evaluate(model_path,
+                                   data_loader,
+                                   mode=VISUALIZE)
+    print(f"avg_loss: {avg_loss}\n")
+    print(pred_list)
 
     # Train pipeline.
-    data_loader = load_dataset(file_dir, batch_size=50)
-    model, loss_fn, optimizer, device = _set_up_training(lr=1e-2,
-                                                         mode=TRAIN_FIRST_TIME)
-    train(data_loader,
-          model,
-          loss_fn,
-          optimizer,
-          device,
-          check_step=10,
-          epoch=1000,
-          log_dir=log_dir)
+    # data_loader = load_dataset(file_dir, batch_size=1)
+    # model, loss_fn, optimizer, device = _set_up_training(lr=1e-2,
+    #                                                      mode=TRAIN_FIRST_TIME)
+    # train(data_loader,
+    #       model,
+    #       loss_fn,
+    #       optimizer,
+    #       device,
+    #       check_step=1,
+    #       epoch=10,
+    #       log_dir=log_dir)
