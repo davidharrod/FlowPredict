@@ -36,7 +36,9 @@ class TestNN(nn.Module):
         super(TestNN, self).__init__()
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(nn.Linear(2, 512), nn.ReLU(),
+                                               nn.LayerNorm(512),
                                                nn.Linear(512, 4096), nn.ReLU(),
+                                               nn.LayerNorm(4096),
                                                nn.Linear(4096, 50001))
 
     def forward(self, x):

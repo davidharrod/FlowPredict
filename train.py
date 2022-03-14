@@ -145,23 +145,23 @@ if __name__ == "__main__":
     file_dir = "./test"
     log_dir = "./log"
     model_path = "C:/Users/Harold/Desktop/FlowPredict/log/2022_01_15_15_14/model_ckpt/model_ckpt.pth"
-    # Evaluate(Visualize) pipeline.
-    data_loader = load_dataset(test_dir, batch_size=1)
-    avg_loss, pred_list = evaluate(model_path,
-                                   data_loader,
-                                   mode=VISUALIZE)
-    print(f"avg_loss: {avg_loss}\n")
-    print(pred_list)
-
-    # Train pipeline.
+    # Evaluate(Visualize).
     # data_loader = load_dataset(file_dir, batch_size=1)
-    # model, loss_fn, optimizer, device = _set_up_training(lr=1e-2,
-    #                                                      mode=TRAIN_FIRST_TIME)
-    # train(data_loader,
-    #       model,
-    #       loss_fn,
-    #       optimizer,
-    #       device,
-    #       check_step=1,
-    #       epoch=10,
-    #       log_dir=log_dir)
+    # avg_loss, pred_list = evaluate(model_path,
+    #                                data_loader,
+    #                                mode=VISUALIZE)
+    # print(f"avg_loss: {avg_loss}\n")
+    # print(pred_list)
+
+    # Train.
+    data_loader = load_dataset(file_dir, batch_size=1)
+    model, loss_fn, optimizer, device = _set_up_training(lr=1e-2,
+                                                         mode=TRAIN_FIRST_TIME)
+    train(data_loader,
+          model,
+          loss_fn,
+          optimizer,
+          device,
+          check_step=1,
+          epoch=10,
+          log_dir=log_dir)
