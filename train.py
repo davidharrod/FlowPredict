@@ -142,7 +142,7 @@ def _test_train():
 
 if __name__ == "__main__":
     test_dir = "./test/test1"
-    file_dir = "./test"
+    file_dir = "D:/wt0_data/train"
     log_dir = "./log"
     model_path = "C:/Users/Harold/Desktop/FlowPredict/log/2022_01_15_15_14/model_ckpt/model_ckpt.pth"
     # Evaluate(Visualize).
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     # print(pred_list)
 
     # Train.
-    data_loader = load_dataset(file_dir, batch_size=1)
+    data_loader = load_dataset(file_dir, batch_size=20)
     model, loss_fn, optimizer, device = _set_up_training(lr=1e-2,
                                                          mode=TRAIN_FIRST_TIME)
     train(data_loader,
@@ -162,6 +162,6 @@ if __name__ == "__main__":
           loss_fn,
           optimizer,
           device,
-          check_step=1,
-          epoch=10,
+          check_step=10,
+          epoch=100,
           log_dir=log_dir)

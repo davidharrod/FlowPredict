@@ -2,6 +2,7 @@ import os
 from posixpath import dirname
 from sys import dont_write_bytecode
 import time
+import shutil
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -64,6 +65,29 @@ def _try_2_create_directory(dir):
         return dir
 
 
+def _move_data(old_dir, new_dir, start=0, end=0):
+    file_list = os.listdir(old_dir)
+    end = len(file_list) if end == 0 else end
+    for file in file_list[start:end]:
+        src = os.path.join(old_dir, file)
+        dst = os.path.join(new_dir, file)
+        shutil.copy(src, dst)
+    return None
+
+
+def divide_data(src_dir, dest_dir):
+    # Try to create folders.
+    train_dir = _try_2_create_directory(os.path.join(dest_dir, "train"))
+    validation_dir = _try_2_create_directory(
+        os.path.join(dest_dir, "validation"))
+    test_dir = _try_2_create_directory(os.path.join(dest_dir, "test"))
+    # Move data
+    _move_data(src_dir, train_dir, start=0, end=1800)
+    _move_data(src_dir, validation_dir, start=1800, end=2400)
+    _move_data(src_dir, test_dir, start=2400)
+    return None
+
+
 def make_dir_for_current_time(target_dir, dir_name=None):
     current_time = time.strftime("%Y_%m_%d_%H_%M", time.localtime())
     dir = os.path.join(target_dir, f"{current_time}", dir_name)
@@ -82,3 +106,8 @@ def visualize(input_tensor):
     plt.show()
     input()
     return None
+
+# Split up dataset.
+# src_dir = "D:\wt0_data\POM_Galerkin_Lizy_data"
+# dest_dir = "D:\wt0_data"
+# divide_data(src_dir,dest_dir)
